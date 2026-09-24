@@ -1,22 +1,37 @@
 name: Build Windows EXE
 
-on: [push]
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Build with Gradle
-        run: ./gradlew build
-      - name: Package with jpackage
+
+      - name: Compile Java
+        shell: cmd
         run: |
-          jpackage --type app-image --name "Fabric Loader" --input build/libs --main-jar trollmod-1.0.0.jar --main-class com.soez.fake.FakeFabricLoader --icon fabric.ico --dest dist
+          if not exist out mkdir out
+          javac -d out src\main\java\com\soez\fake\FakeFabricLoader.java
+
+      - name: Build jar
+        shell: cmd
+        run: |
+          echo Main-Class: com.soez.fake.FakeFabricLoader > manifest.txt
+          jar cfm fabricloader.jar manifest.txt -C out .
+
+      - name: Package with jpackage
+        shell: cmd
+        run: |
+          jpackage --type app-image --name "Fabric Loader" --input . --main-jar fabricloader.jar --main-class com.soez.fake.FakeFabricLoader --icon fabric.ico --dest dist
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
